@@ -200,7 +200,13 @@
                     currentTorrent.destroy();
                 }
 
-                log(`Iniciando download para: ${torrentId.substring(0, 30)}...`);
+                // Log inteligente que verifica se o torrentId é um link (string) ou arquivo
+                if (typeof torrentId === 'string') {
+                    log(`Iniciando download para: ${torrentId.substring(0, 40)}...`);
+                } else {
+                    log(`Iniciando download para o arquivo: ${torrentId.name}`);
+                }
+
                 inputContainer.classList.add('hidden');
                 streamContainer.classList.remove('hidden');
                 torrentTitleElem.textContent = 'Conectando aos peers...';
@@ -217,7 +223,7 @@
                     });
 
                     if (!file) {
-                        log('Erro: Nenhum arquivo de vídeo compatível (.mp4, .mkv, .webm) encontrado no torrent.');
+                        log('Erro: Nenhum arquivo de vídeo compatível (.mp4, .mkv, .webm, .mov) encontrado no torrent.');
                         resetState();
                         return;
                     }
