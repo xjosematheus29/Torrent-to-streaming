@@ -142,6 +142,21 @@
             let currentTorrent = null;
             let statusInterval = null;
 
+            // --- [NOVO] Lista de trackers para aumentar a chance de encontrar peers ---
+            const TRACKERS = [
+                'wss://tracker.openwebtorrent.com',
+                'wss://tracker.btorrent.xyz',
+                'wss://tracker.fastcast.nz',
+                'udp://glotorrents.pw:6969/announce',
+                'udp://tracker.opentrackr.org:1337/announce',
+                'udp://torrent.gresille.org:80/announce',
+                'udp://tracker.openbittorrent.com:80',
+                'udp://tracker.coppersurfer.tk:6969',
+                'udp://tracker.leechers-paradise.org:6969',
+                'udp://p4p.arenabg.ch:1337',
+                'udp://tracker.internetwarriors.net:1337'
+            ];
+
             // --- Funções ---
 
             // Função para registrar mensagens no console e na tela
@@ -211,7 +226,9 @@
                 streamContainer.classList.remove('hidden');
                 torrentTitleElem.textContent = 'Conectando aos peers...';
 
-                client.add(torrentId, (torrent) => {
+                // --- [ALTERADO] Adiciona o torrent com a lista de trackers customizada ---
+                const opts = { announce: TRACKERS };
+                client.add(torrentId, opts, (torrent) => {
                     currentTorrent = torrent;
                     log('Torrent adicionado! Metadados recebidos.');
                     log(`Nome do Torrent: ${torrent.name}`);
