@@ -3,313 +3,213 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Torrent Streamer</title>
-    
-    <!-- Tailwind CSS para um design moderno e responsivo -->
+    <title>Torrent Web Streamer</title>
+    <!-- Incluindo Tailwind CSS para um design moderno -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- WebTorrent: a biblioteca principal para streaming de torrents no navegador -->
+    <!-- Incluindo a biblioteca WebTorrent -->
     <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
-
-    <!-- Fonte do Google para uma melhor aparência -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-
     <style>
-        /* Estilo personalizado para a fonte e para a barra de progresso */
-        body {
-            font-family: 'Inter', sans-serif;
+        /* Estilo customizado para a barra de progresso */
+        .progress-bar {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
         }
-        /* Esconde a seta padrão do input de arquivo */
-        input[type="file"]::-webkit-file-upload-button {
-            display: none;
+        .progress-bar::-webkit-progress-bar {
+            background-color: #4a5568; /* gray-700 */
+            border-radius: 4px;
         }
-        input[type="file"]::file-selector-button {
-            display: none;
+        .progress-bar::-webkit-progress-value {
+            background-color: #4299e1; /* blue-400 */
+            border-radius: 4px;
+            transition: width 0.2s ease-in-out;
+        }
+        .progress-bar::-moz-progress-bar {
+            background-color: #4299e1; /* blue-400 */
+            border-radius: 4px;
         }
     </style>
 </head>
-<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
+<body class="bg-gray-900 text-white font-sans flex items-center justify-center min-h-screen p-4">
 
     <div class="w-full max-w-4xl mx-auto bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8 space-y-6">
-        
         <!-- Cabeçalho -->
-        <div class="text-center">
-            <h1 class="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">Torrent Web Streamer</h1>
-            <p class="text-gray-400 mt-2">Cole um link magnético ou envie um arquivo .torrent para assistir instantaneamente.</p>
-        </div>
+        <header class="text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-blue-400">Torrent Web Streamer</h1>
+            <p class="text-gray-400 mt-2">Cole um link magnético ou info hash para começar o streaming.</p>
+        </header>
 
-        <!-- Área de Input -->
-        <div id="input-container" class="space-y-4">
-            <!-- Input para Magnet Link -->
-            <div>
-                <label for="magnet-link" class="sr-only">Magnet Link</label>
-                <input type="text" id="magnet-link" placeholder="Cole seu link magnético aqui..." class="w-full p-3 bg-gray-700 border-2 border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
-            </div>
-            <button id="stream-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-blue-500">
-                Transmitir
-            </button>
-
-            <!-- Divisor "OU" -->
-            <div class="flex items-center text-gray-500">
-                <hr class="flex-grow border-t border-gray-600">
-                <span class="px-4">OU</span>
-                <hr class="flex-grow border-t border-gray-600">
-            </div>
-
-            <!-- Input para Arquivo .torrent -->
-            <div>
-                <label for="torrent-file" class="w-full flex justify-center items-center bg-gray-700 hover:bg-gray-600 text-gray-400 font-bold py-3 px-4 rounded-lg cursor-pointer transition">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                    </svg>
-                    <span>Enviar arquivo .torrent</span>
-                </label>
-                <input type="file" id="torrent-file" class="hidden" accept=".torrent">
-            </div>
-        </div>
-
-        <!-- Container do Player e Status -->
-        <div id="stream-container" class="hidden">
-            <!-- Player de Vídeo -->
-            <div id="video-player-wrapper" class="bg-black rounded-lg overflow-hidden shadow-lg">
-                <!-- O vídeo será inserido aqui pelo JavaScript -->
-            </div>
-
-            <!-- Informações e Status do Torrent -->
-            <div id="status" class="mt-4 p-4 bg-gray-700/50 rounded-lg space-y-2 text-sm">
-                <h3 class="font-bold text-lg" id="torrent-title">Carregando...</h3>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                    <div>
-                        <p class="font-semibold text-blue-400">Velocidade</p>
-                        <p id="speed">0 kB/s</p>
-                    </div>
-                    <div>
-                        <p class="font-semibold text-green-400">Baixado</p>
-                        <p id="downloaded">0 MB</p>
-                    </div>
-                    <div>
-                        <p class="font-semibold text-purple-400">Peers</p>
-                        <p id="peers">0</p>
-                    </div>
-                    <div>
-                        <p class="font-semibold text-yellow-400">Progresso</p>
-                        <p id="progress">0%</p>
-                    </div>
-                </div>
-                <div class="w-full bg-gray-600 rounded-full h-2.5 mt-2">
-                    <div id="progress-bar" class="bg-gradient-to-r from-blue-500 to-green-400 h-2.5 rounded-full" style="width: 0%"></div>
-                </div>
-            </div>
-             <button id="back-button" class="w-full mt-4 bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-                Voltar
+        <!-- Formulário de Entrada -->
+        <div class="flex flex-col sm:flex-row gap-4">
+            <input type="text" id="magnet-link-input" placeholder="magnet:?xt=urn:btih:..." class="flex-grow bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+            <button id="stream-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 shadow-lg">
+                Assistir
             </button>
         </div>
-        
-        <!-- Área de Logs/Erros -->
-        <div id="logs" class="text-xs text-gray-500 font-mono max-h-24 overflow-y-auto p-2 bg-gray-900 rounded"></div>
 
+        <!-- Container do Vídeo -->
+        <div id="video-container" class="w-full bg-black rounded-lg overflow-hidden aspect-video">
+            <!-- O player de vídeo será inserido aqui -->
+        </div>
+
+        <!-- Seção de Status e Logs -->
+        <div id="status-section" class="space-y-4 hidden">
+            <h2 class="text-xl font-semibold border-b-2 border-gray-700 pb-2">Status do Torrent</h2>
+            
+            <!-- Nome do Arquivo -->
+            <div id="file-name" class="text-gray-300"></div>
+
+            <!-- Progresso -->
+            <div>
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-sm font-medium text-gray-400">Progresso do Download</span>
+                    <span id="progress-percent" class="text-sm font-medium text-blue-400">0%</span>
+                </div>
+                <progress id="progress-bar" value="0" max="100" class="progress-bar"></progress>
+            </div>
+
+            <!-- Estatísticas -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div class="bg-gray-700 p-3 rounded-lg">
+                    <p class="text-xs text-gray-400">Peers</p>
+                    <p id="peers-count" class="text-lg font-bold">0</p>
+                </div>
+                <div class="bg-gray-700 p-3 rounded-lg">
+                    <p class="text-xs text-gray-400">Vel. Download</p>
+                    <p id="download-speed" class="text-lg font-bold">0 B/s</p>
+                </div>
+                <div class="bg-gray-700 p-3 rounded-lg">
+                    <p class="text-xs text-gray-400">Vel. Upload</p>
+                    <p id="upload-speed" class="text-lg font-bold">0 B/s</p>
+                </div>
+                <div class="bg-gray-700 p-3 rounded-lg">
+                    <p class="text-xs text-gray-400">Baixado</p>
+                    <p id="downloaded" class="text-lg font-bold">0 B</p>
+                </div>
+            </div>
+            
+            <!-- Logs -->
+            <div id="logs" class="bg-gray-900 rounded-lg p-4 h-32 overflow-y-auto text-sm font-mono text-gray-400">
+                <p>Aguardando início do torrent...</p>
+            </div>
+        </div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Verifica se o navegador suporta WebRTC, necessário para o WebTorrent
-            if (!WebTorrent.WEBRTC_SUPPORT) {
-                log('Erro: Seu navegador não suporta WebRTC, que é necessário para este site funcionar. Tente usar o Chrome ou Firefox mais recente.');
+        // Selecionando os elementos do DOM
+        const streamButton = document.getElementById('stream-button');
+        const magnetLinkInput = document.getElementById('magnet-link-input');
+        const videoContainer = document.getElementById('video-container');
+        const statusSection = document.getElementById('status-section');
+        
+        const fileNameEl = document.getElementById('file-name');
+        const progressBar = document.getElementById('progress-bar');
+        const progressPercent = document.getElementById('progress-percent');
+        const peersCount = document.getElementById('peers-count');
+        const downloadSpeed = document.getElementById('download-speed');
+        const uploadSpeed = document.getElementById('upload-speed');
+        const downloaded = document.getElementById('downloaded');
+        const logs = document.getElementById('logs');
+
+        let client = null; // Variável para manter a instância do cliente
+
+        // Função para adicionar logs na tela
+        function log(message) {
+            const p = document.createElement('p');
+            p.textContent = `> ${message}`;
+            logs.appendChild(p);
+            logs.scrollTop = logs.scrollHeight; // Auto-scroll para o final
+        }
+
+        // Função para formatar bytes em KB, MB, GB, etc.
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        // Adiciona o evento de clique ao botão
+        streamButton.addEventListener('click', () => {
+            const magnetLink = magnetLinkInput.value.trim();
+            if (!magnetLink) {
+                alert('Por favor, insira um link magnético ou info hash.');
                 return;
             }
 
-            // --- Seletores de Elementos do DOM ---
-            const streamButton = document.getElementById('stream-button');
-            const magnetLinkInput = document.getElementById('magnet-link');
-            const torrentFileInput = document.getElementById('torrent-file');
-            const inputContainer = document.getElementById('input-container');
-            const streamContainer = document.getElementById('stream-container');
-            const videoPlayerWrapper = document.getElementById('video-player-wrapper');
-            const statusDiv = document.getElementById('status');
-            const speedElem = document.getElementById('speed');
-            const downloadedElem = document.getElementById('downloaded');
-            const peersElem = document.getElementById('peers');
-            const progressElem = document.getElementById('progress');
-            const progressBar = document.getElementById('progress-bar');
-            const torrentTitleElem = document.getElementById('torrent-title');
-            const logsDiv = document.getElementById('logs');
-            const backButton = document.getElementById('back-button');
-
-            // --- Variáveis de Estado ---
-            let client = null;
-            let currentTorrent = null;
-            let statusInterval = null;
-
-            // --- [NOVO] Lista de trackers para aumentar a chance de encontrar peers ---
-            const TRACKERS = [
-                'wss://tracker.openwebtorrent.com',
-                'wss://tracker.btorrent.xyz',
-                'wss://tracker.fastcast.nz',
-                'udp://glotorrents.pw:6969/announce',
-                'udp://tracker.opentrackr.org:1337/announce',
-                'udp://torrent.gresille.org:80/announce',
-                'udp://tracker.openbittorrent.com:80',
-                'udp://tracker.coppersurfer.tk:6969',
-                'udp://tracker.leechers-paradise.org:6969',
-                'udp://p4p.arenabg.ch:1337',
-                'udp://tracker.internetwarriors.net:1337'
-            ];
-
-            // --- Funções ---
-
-            // Função para registrar mensagens no console e na tela
-            function log(message) {
-                console.log(message);
-                const p = document.createElement('p');
-                p.textContent = `> ${message}`;
-                logsDiv.appendChild(p);
-                logsDiv.scrollTop = logsDiv.scrollHeight;
+            // Destrói o cliente anterior se existir, para iniciar um novo torrent
+            if (client) {
+                client.destroy(() => {
+                    log('Cliente anterior destruído. Iniciando novo torrent.');
+                    startStreaming(magnetLink);
+                });
+            } else {
+                startStreaming(magnetLink);
             }
+        });
+        
+        function startStreaming(magnetLink) {
+            // Limpa o estado anterior
+            videoContainer.innerHTML = '';
+            logs.innerHTML = '';
+            statusSection.classList.remove('hidden');
+            log('Iniciando cliente WebTorrent...');
 
-            // Função para formatar bytes em KB, MB, GB
-            function formatBytes(bytes, decimals = 2) {
-                if (bytes === 0) return '0 Bytes';
-                const k = 1024;
-                const dm = decimals < 0 ? 0 : decimals;
-                const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-                const i = Math.floor(Math.log(bytes) / Math.log(k));
-                return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-            }
+            client = new WebTorrent();
 
-            // Função para limpar o estado atual
-            function resetState() {
-                log('Resetando estado...');
-                if (currentTorrent) {
-                    currentTorrent.destroy(() => log('Torrent anterior destruído.'));
-                    currentTorrent = null;
-                }
-                if (client) {
-                    client.destroy(() => {
-                        log('Cliente WebTorrent destruído.');
-                        client = null;
-                    });
-                }
-                if (statusInterval) {
-                    clearInterval(statusInterval);
-                    statusInterval = null;
-                }
-                videoPlayerWrapper.innerHTML = ''; // Limpa o player
-                inputContainer.classList.remove('hidden');
-                streamContainer.classList.add('hidden');
-                magnetLinkInput.value = '';
-                torrentFileInput.value = '';
-            }
-            
-            // Função principal que inicia o streaming
-            function startStreaming(torrentId) {
-                if (!client) {
-                    log('Criando novo cliente WebTorrent...');
-                    client = new WebTorrent();
-                }
+            // Adiciona o torrent
+            client.add(magnetLink, (torrent) => {
+                log('Metadados do torrent recebidos. Procurando arquivo de vídeo...');
+                
+                // Encontra o maior arquivo de vídeo no torrent
+                const file = torrent.files.reduce((a, b) => (a.length > b.length ? a : b));
 
-                // Limpa torrents anteriores
-                if (currentTorrent) {
-                    log('Removendo torrent anterior...');
-                    currentTorrent.destroy();
-                }
-
-                // Log inteligente que verifica se o torrentId é um link (string) ou arquivo
-                if (typeof torrentId === 'string') {
-                    log(`Iniciando download para: ${torrentId.substring(0, 40)}...`);
-                } else {
-                    log(`Iniciando download para o arquivo: ${torrentId.name}`);
-                }
-
-                inputContainer.classList.add('hidden');
-                streamContainer.classList.remove('hidden');
-                torrentTitleElem.textContent = 'Conectando aos peers...';
-
-                // --- [ALTERADO] Adiciona o torrent com a lista de trackers customizada ---
-                const opts = { announce: TRACKERS };
-                client.add(torrentId, opts, (torrent) => {
-                    currentTorrent = torrent;
-                    log('Torrent adicionado! Metadados recebidos.');
-                    log(`Nome do Torrent: ${torrent.name}`);
-                    torrentTitleElem.textContent = torrent.name;
-
-                    // Encontra o maior arquivo de vídeo no torrent
-                    const file = torrent.files.find(file => {
-                        return file.name.endsWith('.mp4') || file.name.endsWith('.mkv') || file.name.endsWith('.webm') || file.name.endsWith('.mov');
-                    });
-
-                    if (!file) {
-                        log('Erro: Nenhum arquivo de vídeo compatível (.mp4, .mkv, .webm, .mov) encontrado no torrent.');
-                        resetState();
-                        return;
-                    }
-
+                if (file) {
                     log(`Arquivo de vídeo encontrado: ${file.name}`);
+                    fileNameEl.textContent = `Arquivo: ${file.name}`;
 
-                    // Anexa o arquivo de vídeo ao player
-                    file.appendTo(videoPlayerWrapper, { autoplay: true, controls: true }, (err, elem) => {
-                        if (err) {
-                            log(`Erro ao anexar vídeo: ${err.message}`);
-                            return;
-                        }
-                        log('Vídeo anexado ao player. A reprodução começará em breve.');
-                        elem.classList.add('w-full', 'h-auto');
-                    });
+                    // Anexa o arquivo de vídeo ao container
+                    file.appendTo(videoContainer, { autoplay: true, controls: true });
 
-                    // Atualiza o status periodicamente
-                    statusInterval = setInterval(() => {
-                        speedElem.textContent = `${formatBytes(torrent.downloadSpeed)}/s`;
-                        downloadedElem.textContent = formatBytes(torrent.downloaded);
-                        peersElem.textContent = torrent.numPeers;
+                    // Atualiza as estatísticas em tempo real
+                    torrent.on('download', () => {
                         const progress = (torrent.progress * 100).toFixed(2);
-                        progressElem.textContent = `${progress}%`;
-                        progressBar.style.width = `${progress}%`;
-                    }, 1000);
+                        progressBar.value = progress;
+                        progressPercent.textContent = `${progress}%`;
+                        peersCount.textContent = torrent.numPeers;
+                        downloadSpeed.textContent = `${formatBytes(torrent.downloadSpeed)}/s`;
+                        uploadSpeed.textContent = `${formatBytes(torrent.uploadSpeed)}/s`;
+                        downloaded.textContent = formatBytes(torrent.downloaded);
+                    });
 
                     torrent.on('done', () => {
-                        log('Download do torrent concluído!');
-                        progressElem.textContent = '100%';
-                        progressBar.style.width = '100%';
-                        clearInterval(statusInterval);
+                        log('Download completo!');
+                        progressBar.value = 100;
+                        progressPercent.textContent = `100%`;
                     });
-                    
-                    torrent.on('error', (err) => {
-                        log(`Erro no torrent: ${err.message}`);
-                        resetState();
-                    });
-                });
-                
-                client.on('error', (err) => {
-                    log(`Erro fatal no cliente: ${err.message}`);
-                    resetState();
-                });
-            }
 
-            // --- Event Listeners ---
+                    torrent.on('warning', (err) => log(`Aviso: ${err.message}`));
+                    torrent.on('error', (err) => log(`Erro: ${err.message}`));
 
-            // Botão de transmitir
-            streamButton.addEventListener('click', () => {
-                const magnetLink = magnetLinkInput.value.trim();
-                if (magnetLink) {
-                    startStreaming(magnetLink);
                 } else {
-                    log('Por favor, insira um link magnético válido.');
+                    log('Nenhum arquivo de vídeo encontrado neste torrent.');
                 }
             });
 
-            // Input de arquivo
-            torrentFileInput.addEventListener('change', (event) => {
-                const file = event.target.files[0];
-                if (file) {
-                    log(`Arquivo .torrent selecionado: ${file.name}`);
-                    startStreaming(file);
+            client.on('error', (err) => {
+                log(`Erro fatal no cliente: ${err.message}`);
+                statusSection.classList.add('hidden');
+                // Tenta destruir o cliente para limpar recursos
+                if (client) {
+                    client.destroy();
+                    client = null;
                 }
             });
-            
-            // Botão de voltar
-            backButton.addEventListener('click', resetState);
-        });
+        }
     </script>
+
 </body>
 </html>
